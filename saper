@@ -1,0 +1,204 @@
+using Random
+using LinearAlgebra
+
+#zmienne potrzebne do funkcjonowania kodu
+x = 0
+indices = Tuple{Int, Int}[]
+symbol = 9
+
+#liczba kolumn i wierszy oraz liczba bomb
+#easy
+#rows = 10
+#cols = 10
+#num_bombs=10
+#medium
+rows = 18
+cols = 18
+num_bombs=40
+#hard
+#rows = 24
+#cols = 24
+#num_bombs=99
+
+#tworzenie macierzy matrix to macierz ktora widzi komputer m to macierz rozwiazana 
+matrix = fill(symbol, rows, cols)
+m = zeros(Int, rows, cols)
+
+# Losowe rozmieszczenie bomb
+bomb_indices = randperm(rows * cols)[1:num_bombs]
+    # Ustawienie bomb na planszy
+    for index in bomb_indices
+        row = div(index - 1, cols) + 1
+        col = mod(index - 1, cols) + 1
+        m[row, col] = 10  # Oznaczenie bomby jako 10
+    end
+
+    # Obliczanie liczby sąsiednich bomb dla pól bez bomb
+    for i in 1:rows
+        for j in 1:cols
+            if m[i, j] != 10
+                count = 0
+                for dx in -1:1
+                    for dy in -1:1
+                        if i + dx in 1:rows && j + dy in 1:cols && m[i + dx, j + dy] == 10
+                            count += 1
+                        end
+                    end
+                end
+                m[i, j] = count
+            end
+        end
+    end
+"""rysuje macierz w bardziej przejrzysty sposob"""
+function pokazkon(board)
+
+    println("_________")
+    for i = 1:size(board, 1)
+        for j = 1:size(board, 2)
+            print(board[i, j], "\t")
+        end
+        println()
+    end
+end
+"""zamienia niewiadome na bomby jezeli zostalo tylko tyle bomb ile jest niewiadomych"""
+function replace_nines(matrix, num_bombs)
+
+    nine_count = count(x -> x == 9, matrix)
+    ten_count= count(x -> x == 10, matrix)
+    if nine_count ==num_bombs-ten_count
+        indices = findall(x -> x == 9, matrix)
+        for index in indices
+            matrix[index] = 10
+        end
+    end
+    return matrix
+end
+"""sprawdza ile jest samsiadow o danej wartosci dla danego pola"""
+function count_neighboring_values(matrix, row, col, values)
+  
+    count = 0
+    rows, cols = size(matrix)
+
+    for dr = -1:1, dc = -1:1
+        nr, nc = row + dr, col + dc
+
+        # Pomijamy aktualne pole oraz pola znajdujące się poza granicami macierzy
+        if (nr != row || nc != col) && nr in 1:rows && nc in 1:cols
+            value = matrix[nr, nc]
+            if value in values
+                count += 1
+            end
+        end
+    end
+
+    return count
+end
+"""zwraca indeksy samsiadow danej kratki"""
+function get_neighboring_indices(matrix, row, col)
+    rows, cols = size(matrix)
+    indices = Tuple{Int, Int}[]
+
+    for dr = -1:1, dc = -1:1
+        nr, nc = row + dr, col + dc
+
+        # Pomijamy aktualne pole oraz pola znajdujące się poza granicami macierzy
+        if (nr != row || nc != col) && nr in 1:rows && nc in 1:cols
+            push!(indices, (nr, nc))
+        end
+    end
+
+    return indices
+end
+
+#znajduje 1 najmniejsza wartosc na planszy i je odkrywa (pierwszy bezpieczny ruch)
+while x != -1
+    indices = findall(y -> y == x, m)
+    x += 1
+    if !isempty(indices)
+        matrix[indices[1][1], indices[1][2]] = x - 1
+        x = -1
+    end
+end
+
+#głowna petla gry 
+end_while = false
+while !end_while==true
+    zmiana=1
+    for i = 1:size(matrix, 1)
+        for j = 1:size(matrix, 2)
+            #sprawdza czy liczba sasiednich bomb i niewiadomych jest rowna wartosci danej kratki jesli tak odkrywa wszystkie kratki dookola
+            if count_neighboring_values(matrix, i, j, [9]) != 0
+                if matrix[i, j] == count_neighboring_values(matrix, i, j, [10]) + count_neighboring_values(matrix, i, j, [9])
+                    zmiana=0
+                    idx = get_neighboring_indices(matrix, i, j)
+                    for (po, pog) in idx
+                        matrix[po, pog] = m[po, pog]
+                    end
+                end
+                #sprawdza czy liczba sasiednich bomb jest rowna wartosci danej kratki jesli tak odkrywa wszystkie kratki dookola
+                if matrix[i, j] == count_neighboring_values(matrix, i, j, [10])
+                    zmiana=0
+                    idx = get_neighboring_indices(matrix, i, j)
+                    for (po, pog) in idx
+                        matrix[po, pog] = m[po, pog]
+                    end
+                end
+            end
+        end
+    end
+       
+
+        #jezeli liczba wszsykich niewiadomych jest rowna liczbie kratek odjac liczba bomb oznacza wszyskie pozostale kratki jako bomby
+    replace_nines(matrix,num_bombs)
+
+        
+        #sprawdza czy macierz jest identyczna z macierza koncowa lub jesli zostaly odkryte wszysktie bomby jesli tak oznacza to ze algorytm rozwiazal macierz   
+        if m == matrix || length(findall(isequal(10),matrix))==num_bombs
+#            matrix=m
+            println("gra wygrana")
+            end_while = true  
+            zmiana=0
+            break
+        end
+
+    #jezeli macierz nie zmienila sie w zadnym miejscu po calej procedurze wybiera niewiadomoa 
+    #kratke ktora ma 2 lub mniej sasiednich niewiadomych jezeli takiej nie znajdzie odkrywa losowa kratke
+    if zmiana==1
+        indicess = findall(isequal(symbol), matrix)
+        for idx in indicess
+            list = Tuple(idx)[1:end]
+                if count_neighboring_values(matrix,list[1],list[2],9)<3
+                    if m[idx]==10
+                        println("przegrana ")
+                        matrix[idx]=11
+                        end_while = true
+                        zmiana=0  
+                        break
+                                
+                    else
+                        matrix[idx]=m[idx]
+                        zmiana=0
+                        break
+                        
+                    end
+                end
+            
+        end
+        if zmiana==1
+            if length(indicess)!=0
+                losowy_indeks = indicess[rand(1:length(indicess))]
+                if m[losowy_indeks]==10
+                    println("przegrana ")
+                    matrix[losowy_indeks]=11
+                    end_while = true
+                    break 
+                else
+                    matrix[losowy_indeks]=m[losowy_indeks]
+                end
+            end     
+        end   
+    end
+end
+
+pokazkon(matrix)
+pokazkon(m)
