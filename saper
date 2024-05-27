@@ -7,18 +7,10 @@ indices = Tuple{Int, Int}[]
 symbol = 9
 
 #liczba kolumn i wierszy oraz liczba bomb
-#easy
-#rows = 10
-#cols = 10
-#num_bombs=10
-#medium
 rows = 18
 cols = 18
 num_bombs=40
-#hard
-#rows = 24
-#cols = 24
-#num_bombs=99
+
 
 #tworzenie macierzy matrix to macierz ktora widzi komputer m to macierz rozwiazana 
 matrix = fill(symbol, rows, cols)
